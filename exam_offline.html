@@ -63,7 +63,8 @@
         .filter-btn.active { background: #667eea; color: #fff; }
         .grid-box { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
         .grid-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: #f3f4f6; color: #6b7280; transition: all 0.15s ease; }
-        .grid-cell:active { transform: scale(0.9); }
+        .grid-cell:hover { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .grid-cell:active { transform: scale(0.95); }
         .grid-cell.done { background: #dbeafe; color: #3b82f6; }
         .grid-cell.right { background: #d1fae5; color: #059669; }
         .grid-cell.wrong { background: #fee2e2; color: #dc2626; }
@@ -84,10 +85,37 @@
         .type-btn.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
         .empty-box { text-align: center; padding: 40px 20px; color: #9ca3af; }
         .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .search-bar { display: none; padding: 10px 16px; background: #fff; border-bottom: 1px solid #eee; }
+        .search-bar.show { display: block; }
+        .search-input-wrap { display: flex; align-items: center; background: #f3f4f6; border-radius: 20px; padding: 0 12px; }
+        .search-input { flex: 1; border: none; background: transparent; padding: 10px 8px; font-size: 15px; outline: none; }
+        .search-clear { font-size: 18px; color: #9ca3af; cursor: pointer; padding: 4px; }
+        .search-results { background: #fff; max-height: 60vh; overflow-y: auto; }
+        .search-item { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+        .search-item:active { background: #f8f9fc; }
+        .search-item-title { font-size: 15px; color: #333; margin-bottom: 6px; line-height: 1.5; }
+        .search-item-title mark { background: #fef3c7; color: #d97706; padding: 0 2px; border-radius: 2px; }
+        .search-item-meta { font-size: 12px; color: #9ca3af; }
+        .search-count { padding: 12px 16px; background: #f8f9fc; font-size: 13px; color: #6b7280; }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 44px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; border-bottom: 1px solid #eee; }
+        .top-bar-title { font-size: 17px; font-weight: 600; color: #333; }
+        .top-bar-icon { font-size: 20px; cursor: pointer; padding: 8px; }
     </style>
 </head>
 <body>
-    <div class="top-bar"><span>题库练习 (离线版)</span></div>
+    <div class="top-bar">
+        <span></span>
+        <span class="top-bar-title">题库练习 (离线版)</span>
+        <span class="top-bar-icon" onclick="toggleSearch()">🔍</span>
+    </div>
+    <div class="search-bar" id="searchBar">
+        <div class="search-input-wrap">
+            <span style="color: #9ca3af; font-size: 16px;">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="搜索题目关键词..." oninput="doSearch(this.value)">
+            <span class="search-clear" onclick="clearSearch()">×</span>
+        </div>
+    </div>
+    <div class="search-results" id="searchResults" style="display: none;"></div>
     <div class="main-content" id="mainContent">
         <div class="type-switch">
             <button class="type-btn active" onclick="changeType('all')">全部(1000)</button>
@@ -125,7 +153,7 @@
     </div>
     <div class="modal-overlay" id="gridModal">
         <div class="modal-box">
-            <div class="modal-head"><span class="modal-title">题目导航</span><span class="modal-close" onclick="closeGridModal()">×</span></div>
+            <div class="modal-head"><span class="modal-title">题目导航（点击题号跳转）</span><span class="modal-close" onclick="closeGridModal()">×</span></div>
             <div class="modal-body">
                 <div class="filter-row">
                     <button class="filter-btn active" onclick="filterQ('all')">全部</button>
@@ -143,15 +171,24 @@
         let idx = 0, type = 'all', mode = 'all', filter = 'all';
         let answers = {}, wrongs = new Set(), stars = new Set();
         let startX = 0;
+        let searchResults = [];
+        let isSearchMode = false;
         
         function load() {
             try {
                 const a = localStorage.getItem('qa');
                 const w = localStorage.getItem('qw');
                 const s = localStorage.getItem('qs');
+                const pos = localStorage.getItem('qpos');
                 if (a) answers = JSON.parse(a);
                 if (w) wrongs = new Set(JSON.parse(w));
                 if (s) stars = new Set(JSON.parse(s));
+                if (pos) {
+                    const posData = JSON.parse(pos);
+                    idx = posData.idx || 0;
+                    type = posData.type || 'all';
+                    mode = posData.mode || 'all';
+                }
             } catch(e) {}
         }
         
@@ -160,6 +197,13 @@
                 localStorage.setItem('qa', JSON.stringify(answers));
                 localStorage.setItem('qw', JSON.stringify([...wrongs]));
                 localStorage.setItem('qs', JSON.stringify([...stars]));
+                savePosition();
+            } catch(e) {}
+        }
+        
+        function savePosition() {
+            try {
+                localStorage.setItem('qpos', JSON.stringify({ idx: idx, type: type, mode: mode }));
             } catch(e) {}
         }
         
@@ -182,6 +226,7 @@
             }
             const q = arr[idx] || arr[0];
             if (!arr[idx]) { idx = 0; render(); return; }
+            savePosition();
             const ans = answers[q.id];
             const isStar = stars.has(q.id);
             
@@ -388,9 +433,121 @@
         
         function jumpTo(id) {
             mode = 'all';
-            const arr = getList();
-            const i = arr.findIndex(function(q) { return q.id === id; });
-            if (i !== -1) { idx = i; closeGridModal(); showMain(); }
+            type = 'all';
+            const i = list.findIndex(function(q) { return q.id === id; });
+            if (i !== -1) {
+                idx = i;
+                closeGridModal();
+                render();
+                updateTypeButtons();
+            }
+        }
+        
+        function toggleSearch() {
+            const searchBar = document.getElementById('searchBar');
+            const searchResults = document.getElementById('searchResults');
+            const mainContent = document.getElementById('mainContent');
+            if (searchBar.classList.contains('show')) {
+                searchBar.classList.remove('show');
+                searchResults.style.display = 'none';
+                mainContent.style.display = 'block';
+                document.getElementById('searchInput').value = '';
+            } else {
+                searchBar.classList.add('show');
+                document.getElementById('searchInput').focus();
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            isSearchMode = false;
+        }
+        
+        function doSearch(keyword) {
+            keyword = keyword.trim().toLowerCase();
+            if (!keyword) {
+                document.getElementById('searchResults').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                isSearchMode = false;
+                return;
+            }
+            
+            isSearchMode = true;
+            const results = [];
+            
+            list.forEach(function(q) {
+                const questionText = q.question.toLowerCase();
+                const optionsText = q.options ? q.options.map(function(o) { return o.text; }).join(' ').toLowerCase() : '';
+                const analysisText = q.analysis ? q.analysis.toLowerCase() : '';
+                const allText = questionText + ' ' + optionsText + ' ' + analysisText;
+                
+                if (allText.indexOf(keyword) !== -1) {
+                    const score = calculateScore(keyword, questionText, optionsText, analysisText);
+                    results.push({ question: q, score: score });
+                }
+            });
+            
+            results.sort(function(a, b) { return b.score - a.score; });
+            searchResults = results;
+            
+            const resultsBox = document.getElementById('searchResults');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (results.length === 0) {
+                resultsBox.innerHTML = '<div class="empty-box"><div class="empty-icon">🔍</div><div>未找到相关题目</div></div>';
+            } else {
+                let html = '<div class="search-count">找到 ' + results.length + ' 道相关题目</div>';
+                results.slice(0, 50).forEach(function(item) {
+                    const q = item.question;
+                    const highlighted = highlightKeyword(q.question, keyword);
+                    html += '<div class="search-item" onclick="jumpToSearch(' + q.id + ')">';
+                    html += '<div class="search-item-title">' + highlighted + '</div>';
+                    html += '<div class="search-item-meta">第 ' + q.order + ' 题 · ' + (q.type === 'single_choice' ? '单选' : '判断') + '</div>';
+                    html += '</div>';
+                });
+                if (results.length > 50) {
+                    html += '<div class="search-count">仅显示前50条结果</div>';
+                }
+                resultsBox.innerHTML = html;
+            }
+            
+            resultsBox.style.display = 'block';
+            mainContent.style.display = 'none';
+        }
+        
+        function calculateScore(keyword, question, options, analysis) {
+            let score = 0;
+            if (question.indexOf(keyword) !== -1) score += 100;
+            if (options.indexOf(keyword) !== -1) score += 50;
+            if (analysis.indexOf(keyword) !== -1) score += 30;
+            const questionCount = (question.match(new RegExp(keyword, 'g')) || []).length;
+            score += questionCount * 10;
+            return score;
+        }
+        
+        function highlightKeyword(text, keyword) {
+            const regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            return text.replace(regex, '<mark>$1</mark>');
+        }
+        
+        function jumpToSearch(id) {
+            const i = list.findIndex(function(q) { return q.id === id; });
+            if (i !== -1) {
+                mode = 'all';
+                type = 'all';
+                idx = i;
+                clearSearch();
+                toggleSearch();
+                render();
+                updateTypeButtons();
+            }
+        }
+        
+        function updateTypeButtons() {
+            document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('.type-btn').classList.add('active');
         }
         
         load();
