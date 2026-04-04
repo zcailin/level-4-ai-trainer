@@ -1,0 +1,16 @@
+{
+  "name": "人工智能四级题库",
+  "short_name": "AI题库",
+  "description": "人工智能训练师四级考试题库练习系统",
+  "start_url": "/exam_offline.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
