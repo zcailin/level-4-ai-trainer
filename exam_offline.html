@@ -143,6 +143,13 @@
         </div>
         <div class="stats-card"><div class="stats-head">错题本 <span id="wrongNum"></span></div><div id="wrongGrid"></div></div>
         <div class="stats-card"><div class="stats-head">收藏夹 <span id="favNum"></span></div><div id="favGrid"></div></div>
+        <div class="stats-card">
+            <div class="stats-head">智能标记</div>
+            <div style="padding: 12px; background: #f8f9fc; border-radius: 8px; margin-bottom: 12px; font-size: 14px; color: #6b7280;">
+                系统已根据人工智能训练师四级考试核心知识点自动标记重点题目
+            </div>
+            <button onclick="resetMarking()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">重新标记重点题目</button>
+        </div>
     </div>
     <div class="bottom-bar">
         <div class="tab-item active" onclick="showMain()"><span class="tab-icon">📝</span><span class="tab-label">答题</span></div>
@@ -180,6 +187,7 @@
                 const w = localStorage.getItem('qw');
                 const s = localStorage.getItem('qs');
                 const pos = localStorage.getItem('qpos');
+                const marked = localStorage.getItem('qmarked');
                 if (a) answers = JSON.parse(a);
                 if (w) wrongs = new Set(JSON.parse(w));
                 if (s) stars = new Set(JSON.parse(s));
@@ -189,7 +197,51 @@
                     type = posData.type || 'all';
                     mode = posData.mode || 'all';
                 }
+                if (!marked) {
+                    markImportantQuestions();
+                    localStorage.setItem('qmarked', 'true');
+                }
             } catch(e) {}
+        }
+        
+        function markImportantQuestions() {
+            const keywords = [
+                'K-Means', '决策树', '神经网络', 'CNN', 'RNN', 'LSTM',
+                '激活函数', '损失函数', '优化器', '梯度下降',
+                '混淆矩阵', '准确率', '召回率', 'F1', 'ROC', 'AUC',
+                '过拟合', '欠拟合', '正则化', 'Dropout',
+                '数据清洗', '数据标注', '特征工程', '归一化', '标准化',
+                'NumPy', 'Pandas', 'Scikit-learn', 'TensorFlow', 'PyTorch',
+                '图像处理', '目标检测', '图像分割', 'OCR',
+                '自然语言处理', '词向量', 'Word2Vec', 'BERT',
+                '模型部署', '模型评估', '交叉验证',
+                'Python', '机器学习', '深度学习', '人工智能',
+                '监督学习', '无监督学习', '强化学习',
+                '卷积', '池化', '全连接', '反向传播',
+                '数据增强', '迁移学习', '预训练模型'
+            ];
+            
+            list.forEach(function(q) {
+                const text = q.question + ' ' + (q.analysis || '');
+                for (let i = 0; i < keywords.length; i++) {
+                    if (text.indexOf(keywords[i]) !== -1) {
+                        stars.add(q.id);
+                        break;
+                    }
+                }
+            });
+            
+            save();
+        }
+        
+        function resetMarking() {
+            if (confirm('确定要重新标记重点题目吗？这将清除所有收藏标记并重新智能标记。')) {
+                stars.clear();
+                markImportantQuestions();
+                updateBadge();
+                updateStats();
+                alert('重点题目已重新标记完成！');
+            }
         }
         
         function save() {
@@ -242,12 +294,8 @@
             if (q.type === 'single_choice') {
                 q.options.forEach(function(o) {
                     let cls = 'option-item';
-                    if (ans) {
-                        cls += ' disabled';
-                        if (o.label === ans) cls += ans === q.answer ? ' correct' : ' wrong';
-                        else if (o.label === q.answer) cls += ' correct';
-                    }
-                    const icon = ans && o.label === q.answer ? '✓' : (ans && o.label === ans && ans !== q.answer ? '✗' : '');
+                    if (o.label === q.answer) cls += ' correct';
+                    const icon = o.label === q.answer ? '✓' : '';
                     optHtml += '<div class="' + cls + '" onclick="choose(' + q.id + ',\'' + o.label + '\',\'' + q.answer + '\')">';
                     optHtml += '<span class="option-letter">' + o.label + '</span>';
                     optHtml += '<span class="option-content">' + o.text + '</span>';
@@ -257,12 +305,8 @@
             } else {
                 ['正确', '错误'].forEach(function(v) {
                     let cls = 'option-item';
-                    if (ans) {
-                        cls += ' disabled';
-                        if (v === ans) cls += ans === q.answer ? ' correct' : ' wrong';
-                        else if (v === q.answer) cls += ' correct';
-                    }
-                    const icon = ans && v === q.answer ? '✓' : (ans && v === ans && ans !== q.answer ? '✗' : '');
+                    if (v === q.answer) cls += ' correct';
+                    const icon = v === q.answer ? '✓' : '';
                     optHtml += '<div class="' + cls + '" onclick="choose(' + q.id + ',\'' + v + '\',\'' + q.answer + '\')">';
                     optHtml += '<span class="option-letter">' + (v === '正确' ? '✓' : '✗') + '</span>';
                     optHtml += '<span class="option-content">' + v + '</span>';
@@ -274,20 +318,16 @@
             
             const ansCard = document.getElementById('answerCard');
             const analysisSection = document.getElementById('analysisSection');
-            if (ans) {
-                let ansHtml = '<div class="answer-header"><span class="answer-label">正确答案：</span><span class="answer-value">' + q.answer + '</span></div>';
-                if (ans !== q.answer) ansHtml += '<div class="wrong-tip"><span>💡</span> 已自动加入错题本</div>';
-                ansCard.innerHTML = ansHtml;
-                ansCard.className = 'answer-card show';
-                
-                if (q.analysis) {
-                    analysisSection.innerHTML = '<div class="analysis-title">题目解析</div><div class="analysis-content">' + q.analysis + '</div>';
-                    analysisSection.className = 'analysis-section show';
-                } else {
-                    analysisSection.className = 'analysis-section';
-                }
+            
+            let ansHtml = '<div class="answer-header"><span class="answer-label">正确答案：</span><span class="answer-value">' + q.answer + '</span></div>';
+            if (ans && ans !== q.answer) ansHtml += '<div class="wrong-tip"><span>💡</span> 已自动加入错题本</div>';
+            ansCard.innerHTML = ansHtml;
+            ansCard.className = 'answer-card show';
+            
+            if (q.analysis) {
+                analysisSection.innerHTML = '<div class="analysis-title">题目解析</div><div class="analysis-content">' + q.analysis + '</div>';
+                analysisSection.className = 'analysis-section show';
             } else {
-                ansCard.className = 'answer-card';
                 analysisSection.className = 'analysis-section';
             }
             
