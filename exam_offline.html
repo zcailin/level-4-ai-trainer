@@ -3,6 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>人工智能四级-题库练习(离线版)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -181,25 +192,58 @@
         let searchResults = [];
         let isSearchMode = false;
         
+        const isWeixin = /MicroMessenger/i.test(navigator.userAgent);
+        
+        function setStorage(key, value) {
+            try {
+                if (isWeixin) {
+                    document.cookie = key + '=' + encodeURIComponent(JSON.stringify(value)) + ';path=/;max-age=31536000';
+                } else {
+                    localStorage.setItem(key, JSON.stringify(value));
+                }
+            } catch(e) {}
+        }
+        
+        function getStorage(key) {
+            try {
+                if (isWeixin) {
+                    const match = document.cookie.match(new RegExp(key + '=([^;]+)'));
+                    return match ? JSON.parse(decodeURIComponent(match[1])) : null;
+                } else {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : null;
+                }
+            } catch(e) { return null; }
+        }
+        
+        function removeStorage(key) {
+            try {
+                if (isWeixin) {
+                    document.cookie = key + '=;path=/;max-age=0';
+                } else {
+                    localStorage.removeItem(key);
+                }
+            } catch(e) {}
+        }
+        
         function load() {
             try {
-                const a = localStorage.getItem('qa');
-                const w = localStorage.getItem('qw');
-                const s = localStorage.getItem('qs');
-                const pos = localStorage.getItem('qpos');
-                const marked = localStorage.getItem('qmarked');
-                if (a) answers = JSON.parse(a);
-                if (w) wrongs = new Set(JSON.parse(w));
-                if (s) stars = new Set(JSON.parse(s));
+                const a = getStorage('qa');
+                const w = getStorage('qw');
+                const s = getStorage('qs');
+                const pos = getStorage('qpos');
+                const marked = getStorage('qmarked');
+                if (a) answers = a;
+                if (w) wrongs = new Set(w);
+                if (s) stars = new Set(s);
                 if (pos) {
-                    const posData = JSON.parse(pos);
-                    idx = posData.idx || 0;
-                    type = posData.type || 'all';
-                    mode = posData.mode || 'all';
+                    idx = pos.idx || 0;
+                    type = pos.type || 'all';
+                    mode = pos.mode || 'all';
                 }
                 if (!marked) {
                     markImportantQuestions();
-                    localStorage.setItem('qmarked', 'true');
+                    setStorage('qmarked', true);
                 }
             } catch(e) {}
         }
@@ -246,16 +290,16 @@
         
         function save() {
             try {
-                localStorage.setItem('qa', JSON.stringify(answers));
-                localStorage.setItem('qw', JSON.stringify([...wrongs]));
-                localStorage.setItem('qs', JSON.stringify([...stars]));
+                setStorage('qa', answers);
+                setStorage('qw', [...wrongs]);
+                setStorage('qs', [...stars]);
                 savePosition();
             } catch(e) {}
         }
         
         function savePosition() {
             try {
-                localStorage.setItem('qpos', JSON.stringify({ idx: idx, type: type, mode: mode }));
+                setStorage('qpos', { idx: idx, type: type, mode: mode });
             } catch(e) {}
         }
         
