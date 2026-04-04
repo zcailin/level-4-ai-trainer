@@ -141,10 +141,6 @@
         <div class="options-section" id="optionsSection"></div>
         <div class="answer-card" id="answerCard"></div>
         <div class="analysis-section" id="analysisSection"></div>
-        <div class="nav-section">
-            <button class="nav-btn prev" onclick="goPrev()">上一题</button>
-            <button class="nav-btn next" onclick="goNext()">下一题</button>
-        </div>
     </div>
     <div class="stats-page" id="statsPage">
         <div class="stats-card">
@@ -367,7 +363,7 @@
             const ansCard = document.getElementById('answerCard');
             const analysisSection = document.getElementById('analysisSection');
             
-            let ansHtml = '<div class="answer-header"><span class="answer-label">正确答案：</span><span class="answer-value">' + q.answer + '</span></div>';
+            let ansHtml = '<div class="nav-section"><button class="nav-btn prev" onclick="goPrev()">上一题</button><button class="nav-btn next" onclick="goNext()">下一题</button></div>';
             if (ans && ans !== q.answer) ansHtml += '<div class="wrong-tip"><span>💡</span> 已自动加入错题本</div>';
             ansCard.innerHTML = ansHtml;
             ansCard.className = 'answer-card show';
