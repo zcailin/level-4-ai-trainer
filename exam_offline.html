@@ -30,7 +30,7 @@
         .q-type.judge { background: linear-gradient(135deg, #f093fb, #f5576c); }
         .q-number { color: #999; font-size: 14px; }
         .q-title { font-size: 17px; line-height: 1.7; color: #333; font-weight: 500; }
-        .options-section { background: #fff; padding: 10px 16px 20px; }
+        .options-section { background: #fff; padding: 10px 16px 10px; }
         .option-item { display: flex; align-items: flex-start; padding: 16px; margin-bottom: 12px; background: #f8f9fc; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s ease; position: relative; }
         .option-item:active { transform: scale(0.98); }
         .option-item.correct { background: #ecfdf5; border-color: #10b981; }
@@ -41,19 +41,15 @@
         .option-item.wrong .option-letter { background: #ef4444; color: #fff; }
         .option-content { flex: 1; font-size: 16px; line-height: 1.6; color: #374151; padding-top: 2px; }
         .option-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 22px; }
-        .answer-card { background: #fff; margin: 10px 0; padding: 16px; display: none; }
-        .answer-card.show { display: block; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .answer-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .answer-label { font-size: 14px; color: #6b7280; }
-        .answer-value { font-size: 18px; font-weight: 700; color: #10b981; }
+        .answer-card { background: #fff; margin: 0; padding: 0 16px 16px; display: none; }
+        .answer-card.show { display: block; }
         .wrong-tip { display: flex; align-items: center; gap: 6px; padding: 12px; background: #fef3c7; border-radius: 8px; font-size: 14px; color: #d97706; margin-top: 12px; }
-        .analysis-section { background: #fff; margin: 10px 0; padding: 16px; display: none; }
-        .analysis-section.show { display: block; animation: slideUp 0.3s ease; }
+        .analysis-section { background: #fff; margin: 0; padding: 0 16px 16px; display: none; }
+        .analysis-section.show { display: block; }
         .analysis-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #333; margin-bottom: 10px; }
         .analysis-title::before { content: '💡'; font-size: 18px; }
         .analysis-content { font-size: 15px; line-height: 1.8; color: #555; background: #f8f9fc; padding: 14px; border-radius: 8px; border-left: 3px solid #667eea; }
-        .nav-section { display: flex; padding: 16px; gap: 12px; background: #fff; margin-top: 10px; }
+        .nav-section { display: flex; padding: 0; gap: 12px; margin-top: 0; }
         .nav-btn { flex: 1; height: 48px; border: none; border-radius: 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
         .nav-btn:active { transform: scale(0.96); }
         .nav-btn.prev { background: #f3f4f6; color: #6b7280; }
