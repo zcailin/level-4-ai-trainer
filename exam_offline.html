@@ -30,6 +30,7 @@
         .q-type { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
         .q-type.judge { background: linear-gradient(135deg, #f093fb, #f5576c); }
         .q-number { color: #999; font-size: 14px; }
+        .exam-badge { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
         .q-title { font-size: 17px; line-height: 1.7; color: #333; font-weight: 500; }
         .options-section { background: #fff; padding: 10px 16px 10px; }
         .option-item { display: flex; align-items: flex-start; padding: 16px; margin-bottom: 12px; background: #f8f9fc; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s ease; position: relative; }
@@ -155,6 +156,7 @@
     <div class="bottom-bar">
         <div class="tab-item active" id="bank1Tab" onclick="switchBank(1)"><span class="tab-icon">📚</span><span class="tab-label">原题库</span></div>
         <div class="tab-item" id="bank2Tab" onclick="switchBank(2)"><span class="tab-icon">📖</span><span class="tab-label">演练题库</span></div>
+        <div class="tab-item" id="examTab" onclick="switchBank(3)"><span class="tab-icon">📝</span><span class="tab-label">考试</span></div>
         <div class="tab-item" onclick="showWrongList()"><span class="tab-icon">❌</span><span class="tab-label">错题</span><span class="tab-badge" id="wrongBadge"></span></div>
         <div class="tab-item" onclick="showFavList()"><span class="tab-icon">⭐</span><span class="tab-label">收藏</span><span class="tab-badge" id="favBadge"></span></div>
         <div class="tab-item" onclick="showGridModal()"><span class="tab-icon">📋</span><span class="tab-label">题号</span></div>
@@ -221,10 +223,11 @@
         
         function switchBank(bank) {
             currentBank = bank;
-            list = bank === 1 ? originalList : newList;
+            list = (bank === 1) ? originalList : newList;
             idx = 0; type = 'all'; mode = 'all';
             document.getElementById('bank1Tab').classList.toggle('active', bank === 1);
             document.getElementById('bank2Tab').classList.toggle('active', bank === 2);
+            document.getElementById('examTab').classList.toggle('active', bank === 3);
             render();
             updateBadge();
         }
@@ -328,10 +331,15 @@
             savePosition();
             const ans = answers[q.id];
             const isStar = stars.has(q.id);
+            const isExamMode = (currentBank === 3);
+            const hasAnswered = !!ans;
             
             let metaHtml = '<div class="question-meta">';
             metaHtml += '<span class="q-type' + (q.type === 'judge' ? ' judge' : '') + '">' + (q.type === 'single_choice' ? '单选' : '判断') + '</span>';
             metaHtml += '<span class="q-number">' + q.order + ' / ' + arr.length + '</span>';
+            if (isExamMode) {
+                metaHtml += '<span class="exam-badge">考试模式</span>';
+            }
             metaHtml += '<span style="margin-left:auto;cursor:pointer;font-size:20px" onclick="toggleStar(' + q.id + ')">' + (isStar ? '⭐' : '☆') + '</span>';
             metaHtml += '</div>';
             metaHtml += '<div class="q-title">' + q.question + '</div>';
@@ -342,8 +350,21 @@
             if (q.type === 'single_choice') {
                 q.options.forEach(function(o) {
                     let cls = 'option-item';
-                    if (o.label === correctAnswer) cls += ' correct';
-                    const icon = o.label === correctAnswer ? '✓' : '';
+                    let icon = '';
+                    if (isExamMode) {
+                        if (hasAnswered) {
+                            if (o.label === correctAnswer) {
+                                cls += ' correct';
+                                icon = '✓';
+                            } else if (o.label === ans && ans !== correctAnswer) {
+                                cls += ' wrong';
+                                icon = '✗';
+                            }
+                        }
+                    } else {
+                        if (o.label === correctAnswer) cls += ' correct';
+                        icon = o.label === correctAnswer ? '✓' : '';
+                    }
                     optHtml += '<div class="' + cls + '" onclick="choose(' + q.id + ',\'' + o.label + '\',\'' + correctAnswer + '\')">';
                     optHtml += '<span class="option-letter">' + o.label + '</span>';
                     optHtml += '<span class="option-content">' + o.text + '</span>';
@@ -354,8 +375,21 @@
                 const judgeAnswer = q.answer || '正确';
                 ['正确', '错误'].forEach(function(v) {
                     let cls = 'option-item';
-                    if (v === judgeAnswer) cls += ' correct';
-                    const icon = v === judgeAnswer ? '✓' : '';
+                    let icon = '';
+                    if (isExamMode) {
+                        if (hasAnswered) {
+                            if (v === judgeAnswer) {
+                                cls += ' correct';
+                                icon = '✓';
+                            } else if (v === ans && ans !== judgeAnswer) {
+                                cls += ' wrong';
+                                icon = '✗';
+                            }
+                        }
+                    } else {
+                        if (v === judgeAnswer) cls += ' correct';
+                        icon = v === judgeAnswer ? '✓' : '';
+                    }
                     optHtml += '<div class="' + cls + '" onclick="choose(' + q.id + ',\'' + v + '\',\'' + judgeAnswer + '\')">';
                     optHtml += '<span class="option-letter">' + (v === '正确' ? '✓' : '✗') + '</span>';
                     optHtml += '<span class="option-content">' + v + '</span>';
@@ -373,7 +407,7 @@
             ansCard.innerHTML = ansHtml;
             ansCard.className = 'answer-card show';
             
-            if (q.analysis) {
+            if (q.analysis && (!isExamMode || hasAnswered)) {
                 analysisSection.innerHTML = '<div class="analysis-title">题目解析</div><div class="analysis-content">' + q.analysis + '</div>';
                 analysisSection.className = 'analysis-section show';
             } else {
